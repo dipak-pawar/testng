@@ -3,6 +3,7 @@ package test.configurationfailurepolicy;
 import static org.testng.Assert.assertEquals;
 import static test.SimpleBaseTest.getPathToResource;
 
+import org.testng.Assert;
 import org.testng.ITestContext;
 import org.testng.ITestNGListener;
 import org.testng.TestListenerAdapter;
@@ -37,6 +38,7 @@ public class FailurePolicyTest {
       new Object[] { new Class[] { FactoryClassWithFailedBeforeMethod.class }, 2, 0, 2 },
       new Object[] { new Class[] { FactoryClassWithFailedBeforeMethodAndMultipleInvocations.class }, 8, 0, 8 },
       new Object[] { new Class[] { FactoryClassWithFailedBeforeClassMethod.class }, 2, 2, 2 },
+      new Object[] { new Class[] { ClassWithFailedBeforeMethodAndAfterMethodAfterGroup.class }, 1, 0, 1 },
     };
     return data;
   }
@@ -76,6 +78,77 @@ public class FailurePolicyTest {
     TestNG.privateMain(argv, tla);
 
     verify(tla, 2, 0, 2);
+  }
+
+  @Test
+  public void afterMethod_shouldBeCalled_if_beforeMethod_failed_with_configFailurePolicy_as_continue() {
+    String[] argv = new String[] { "-log", "0", "-d", OutputDirectoryPatch.getOutputDirectory(),
+        "-configfailurepolicy", "continue",
+        "-testclass", ClassWithFailedBeforeMethodAndAfterMethodAfterGroup.class.getCanonicalName() };
+    TestListenerAdapter tla = new TestListenerAdapter();
+    TestNG.privateMain(argv, tla);
+
+    Assert.assertTrue(ClassWithFailedBeforeMethodAndAfterMethodAfterGroup.afterMethodSuccess());
+  }
+
+  @Test
+  public void afterGroup_shouldBeCalled_if_beforeMethod_failed_with_configFailurePolicy_as_continue() {
+    String[] argv = new String[] { "-log", "0", "-d", OutputDirectoryPatch.getOutputDirectory(),
+        "-configfailurepolicy", "continue",
+        "-testclass", ClassWithFailedBeforeMethodAndAfterMethodAfterGroup.class.getCanonicalName() };
+    TestListenerAdapter tla = new TestListenerAdapter();
+    TestNG.privateMain(argv, tla);
+
+    verify(tla, 1, 0, 1);
+    Assert.assertTrue(ClassWithFailedBeforeMethodAndAfterMethodAfterGroup.afterGroupSuccess());
+  }
+
+  @Test
+  public void afterMethod_shouldBeSkipped_if_beforeMethod_failed_with_configFailurePolicy_as_default() {
+    String[] argv = new String[] { "-log", "0", "-d", OutputDirectoryPatch.getOutputDirectory(),
+        "-testclass", ClassWithFailedBeforeMethodAndAfterMethodAfterGroup.class.getCanonicalName() };
+    TestListenerAdapter tla = new TestListenerAdapter();
+    TestNG.privateMain(argv, tla);
+
+    Assert.assertFalse(ClassWithFailedBeforeMethodAndAfterMethodAfterGroup.afterMethodSuccess());
+  }
+
+  @Test
+  public void afterGroup_shouldBeSkipped_if_beforeMethod_failed_with_configFailurePolicy_as_default() {
+    String[] argv = new String[] { "-log", "0", "-d", OutputDirectoryPatch.getOutputDirectory(),
+        "-testclass", ClassWithFailedBeforeMethodAndAfterMethodAfterGroup.class.getCanonicalName() };
+    TestListenerAdapter tla = new TestListenerAdapter();
+    TestNG.privateMain(argv, tla);
+
+    verify(tla, 1, 2, 1);
+    Assert.assertFalse(ClassWithFailedBeforeMethodAndAfterMethodAfterGroup.afterGroupSuccess());
+  }
+
+  // configfailurepolicy -> default i.e. skipped
+  @Test
+  public void afterMethod_withAlwaysRunTrue_shouldBeCalled_afterGroup_withAlwaysRunTrue_shouldBeSKipped_if_beforeMethod_failed() {
+    String[] argv = new String[] { "-log", "0", "-d", OutputDirectoryPatch.getOutputDirectory(),
+        "-testclass", ClassWithFailedBeforeMethodAndAfterMethodWithAlwaysRunTrue.class.getCanonicalName() };
+    TestListenerAdapter tla = new TestListenerAdapter();
+    TestNG.privateMain(argv, tla);
+
+    verify(tla, 1, 1, 1);
+    Assert.assertTrue(ClassWithFailedBeforeMethodAndAfterMethodWithAlwaysRunTrue.afterMethodSuccess());
+    Assert.assertFalse(ClassWithFailedBeforeMethodAndAfterMethodWithAlwaysRunTrue.afterGroupSuccess());
+  }
+
+  // configfailurepolicy -> continue
+  @Test
+  public void afterMethod_withAlwaysRunTrue_shouldBeCalled_afterGroup_withAlwaysRunTrue_shouldBeCalled_if_beforeMethod_failed() {
+    String[] argv = new String[] { "-log", "0", "-d", OutputDirectoryPatch.getOutputDirectory(),
+        "-configfailurepolicy", "continue",
+        "-testclass", ClassWithFailedBeforeMethodAndAfterMethodWithAlwaysRunTrue.class.getCanonicalName() };
+    TestListenerAdapter tla = new TestListenerAdapter();
+    TestNG.privateMain(argv, tla);
+
+    verify(tla, 1, 0, 1);
+    Assert.assertTrue(ClassWithFailedBeforeMethodAndAfterMethodWithAlwaysRunTrue.afterMethodSuccess());
+    Assert.assertTrue(ClassWithFailedBeforeMethodAndAfterMethodWithAlwaysRunTrue.afterGroupSuccess());
   }
 
   @Test
